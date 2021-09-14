@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 repositories {
     mavenLocal()
@@ -13,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId "com.google.firebase.udacity.friendlychat"
-        minSdkVersion 16
+        minSdkVersion 24
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
@@ -40,4 +41,6 @@ dependencies {
 
     // Displaying images
     implementation 'com.github.bumptech.glide:glide:3.7.0'
+
+    implementation 'androidx.core:core-ktx:1.6.0'
 }

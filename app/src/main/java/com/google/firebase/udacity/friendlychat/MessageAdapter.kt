@@ -1,48 +1,37 @@
-package com.google.firebase.udacity.friendlychat;
+package com.google.firebase.udacity.friendlychat
 
-import android.app.Activity;
-import android.content.Context;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.app.Activity
+import android.content.Context
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.ImageView
+import android.widget.TextView
+import com.bumptech.glide.Glide
 
-import com.bumptech.glide.Glide;
-
-import java.util.List;
-
-public class MessageAdapter extends ArrayAdapter<FriendlyMessage> {
-    public MessageAdapter(Context context, int resource, List<FriendlyMessage> objects) {
-        super(context, resource, objects);
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_message, parent, false);
+class MessageAdapter(context: Context?, resource: Int, objects: List<FriendlyMessage?>?) : ArrayAdapter<FriendlyMessage?>(context!!, resource, objects!!) {
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        var mConvertView = convertView
+        if (mConvertView == null) {
+            mConvertView = (context as Activity).layoutInflater.inflate(R.layout.item_message, parent, false)
         }
-
-        ImageView photoImageView = (ImageView) convertView.findViewById(R.id.photoImageView);
-        TextView messageTextView = (TextView) convertView.findViewById(R.id.messageTextView);
-        TextView authorTextView = (TextView) convertView.findViewById(R.id.nameTextView);
-
-        FriendlyMessage message = getItem(position);
-
-        boolean isPhoto = message.getPhotoUrl() != null;
+        val photoImageView = mConvertView!!.findViewById<View>(R.id.photoImageView) as ImageView
+        val messageTextView = mConvertView.findViewById<View>(R.id.messageTextView) as TextView
+        val authorTextView = mConvertView.findViewById<View>(R.id.nameTextView) as TextView
+        val message = getItem(position)
+        val isPhoto = message!!.photoUrl != null
         if (isPhoto) {
-            messageTextView.setVisibility(View.GONE);
-            photoImageView.setVisibility(View.VISIBLE);
-            Glide.with(photoImageView.getContext())
-                    .load(message.getPhotoUrl())
-                    .into(photoImageView);
+            messageTextView.visibility = View.GONE
+            photoImageView.visibility = View.VISIBLE
+            Glide.with(photoImageView.context)
+                    .load(message.photoUrl)
+                    .into(photoImageView)
         } else {
-            messageTextView.setVisibility(View.VISIBLE);
-            photoImageView.setVisibility(View.GONE);
-            messageTextView.setText(message.getText());
+            messageTextView.visibility = View.VISIBLE
+            photoImageView.visibility = View.GONE
+            messageTextView.text = message.text
         }
-        authorTextView.setText(message.getName());
-
-        return convertView;
+        authorTextView.text = message.name
+        return mConvertView
     }
 }
