@@ -15,6 +15,9 @@
  */
 package com.google.firebase.udacity.friendlychat
 
+import com.google.firebase.database.IgnoreExtraProperties
+
+@IgnoreExtraProperties
 data class FriendlyMessage(
     var text: String? = null,
     var name: String? = null,
