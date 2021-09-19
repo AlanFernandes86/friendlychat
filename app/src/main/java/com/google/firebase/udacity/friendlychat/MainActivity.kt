@@ -1,21 +1,3 @@
-/**
- * Copyright Google Inc. All Rights Reserved.
- *
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.google.firebase.udacity.friendlychat
 
 import android.os.Bundle
@@ -28,8 +10,12 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
+import com.firebase.ui.auth.AuthUI
+import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
+import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import java.util.*
@@ -43,16 +29,26 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mSendButton: Button
     private lateinit var mUsername: String
     private lateinit var mFirebaseDatabase: FirebaseDatabase
-    private lateinit var mMessageDatabaseReference: DatabaseReference
+    private lateinit var mMessagesDatabaseReference: DatabaseReference
+    private lateinit var mChildEventListener: ChildEventListener
+    private lateinit var mFirebaseAuth: FirebaseAuth
+    private lateinit var mAuthStateListener: FirebaseAuth.AuthStateListener
+
+    private val signInLauncher = registerForActivityResult(
+            FirebaseAuthUIActivityResultContract()
+    ) { res ->
+        this.onSignInResult(res)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mUsername = ANONYMOUS
 
-        //Initialize Firebase
+        //Initialize Firebase components
         mFirebaseDatabase = Firebase.database
-        mMessageDatabaseReference = mFirebaseDatabase.reference.child("messages")
+        mFirebaseAuth = Firebase.auth
+        mMessagesDatabaseReference = mFirebaseDatabase.reference.child("messages")
 
         // Initialize references to views
         mProgressBar = findViewById<View>(R.id.progressBar) as ProgressBar
@@ -88,9 +84,104 @@ class MainActivity : AppCompatActivity() {
         // Send button sends a message and clears the EditText
         mSendButton.setOnClickListener { // TODO: Send messages on click
             val friendlyMessage = FriendlyMessage(mMessageEditText.text.toString(), mUsername, null)
-            mMessageDatabaseReference.push().setValue(friendlyMessage)
+            mMessagesDatabaseReference.push().setValue(friendlyMessage)
             // Clear input box
             mMessageEditText.setText("")
+        }
+
+        mAuthStateListener = (FirebaseAuth.AuthStateListener {
+            val firebaseUser = it.currentUser
+            if(firebaseUser != null){
+                // User is signed in
+                onSignedInInitialize(firebaseUser.displayName ?: ANONYMOUS)
+            }
+            else{
+                // User is signed out
+                onSignedOutCleanup()
+                createSignInIntent()
+            }
+        })
+    }
+
+    private fun onSignedInInitialize(userName: String) {
+        mUsername = userName
+        attachDatabaseReadListener()
+    }
+
+    private fun attachDatabaseReadListener() {
+        mChildEventListener = (object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val newFriendlyMessage = snapshot.getValue(FriendlyMessage::class.java)
+                mMessageAdapter.add(newFriendlyMessage)
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                //TODO("Not yet implemented")
+            }
+        })
+        mMessagesDatabaseReference.addChildEventListener(mChildEventListener)
+    }
+
+    private fun onSignedOutCleanup() {
+        mUsername = ANONYMOUS
+        mMessageAdapter.clear()
+        detachDatabaseReadListener()
+    }
+
+    private fun detachDatabaseReadListener() {
+        if(::mChildEventListener.isInitialized){
+            mMessagesDatabaseReference.removeEventListener(mChildEventListener)
+        }
+    }
+
+    private fun createSignInIntent() {
+        // Choose authentication providers
+        val providers = arrayListOf(
+                AuthUI.IdpConfig.EmailBuilder().build(),
+                //AuthUI.IdpConfig.PhoneBuilder().build(),
+                AuthUI.IdpConfig.GoogleBuilder().build(),
+                //AuthUI.IdpConfig.FacebookBuilder().build(),
+                //AuthUI.IdpConfig.TwitterBuilder().build()
+                )
+
+        // Create and launch sign-in intent
+        val signInIntent = AuthUI.getInstance()
+                .createSignInIntentBuilder()
+                .setIsSmartLockEnabled(false)
+                .setAvailableProviders(providers)
+                .build()
+        signInLauncher.launch(signInIntent)
+    }
+
+
+    private fun onSignInResult(result: FirebaseAuthUIAuthenticationResult) {
+        val response = result.idpResponse
+        if (result.resultCode == RESULT_OK) {
+            // Successfully signed in
+            val user = FirebaseAuth.getInstance().currentUser
+            Toast.makeText(this, "You're now signed in. Welcome to FriendlyChat.", Toast.LENGTH_SHORT).show()
+            // ...
+        }
+        else if(result.resultCode == RESULT_CANCELED) {
+            finish()
+        }
+        else {
+            // Sign in failed. If response is null the user canceled the
+            // sign-in flow using the back button. Otherwise check
+            // response.getError().getErrorCode() and handle the error.
+            // ...
         }
     }
 
@@ -101,7 +192,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return super.onOptionsItemSelected(item)
+        return when(item.itemId){
+            R.id.sign_out_menu -> {
+                AuthUI.getInstance().signOut(this)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mFirebaseAuth.removeAuthStateListener(mAuthStateListener)
+        detachDatabaseReadListener()
+        mMessageAdapter.clear()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mFirebaseAuth.addAuthStateListener(mAuthStateListener)
     }
 
     companion object {
