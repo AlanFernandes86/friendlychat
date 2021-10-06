@@ -1,14 +1,17 @@
-# FriendlyChat
+# FriendlyChat :speech_balloon: (Kotlin Version)
+## Aplicativo do curso da Udacity "Firebase in a wekeend (Android)"
 
-This repository contains code for the FriendlyChat project in the [Firebase in a Weekend: Android by Google](https://www.udacity.com/course/firebase-in-a-weekend-by-google-android--ud0352) Udacity course.
+## Sobre o aplicativo
 
-## Overview
+Frindlychat é um aplicativo que utiliza as ferramentas do firebase (Database, Auth e Storage) para uma aplicação de bate papo em tempo real.
 
-FriendlyChat is an app that allows users to send and receive text and photos in realtime across platforms.
+## Atualizações / Melhorias
 
-## Setup
+O curso por ser antigo é baseado em JAVA, porém os exercícios foram convertidos e desenvolvido em Kotlin. Também foram necessárias atualizações no gradlle tanto a nível de módulo como de projeto. 
 
-Setup requires creating a Firebase project. See https://firebase.google.com/ for more information.
+## Fontes
 
-## License
-See [LICENSE](LICENSE)
+O aplicativo foi desenvolvido com base no curso e a documentação oficial do Android.
+
+## Instalação
+É necessário criar um Firebase Project. Acesse https://firebase.google.com/ para mais informações.
